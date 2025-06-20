@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML ↔ Markdown Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .converter-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .input-section, .output-section {
+            flex: 1;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn:active {
+            background-color: #004085;
+        }
+        
+        .format-info {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .converter-section {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HTML ↔ Markdown Converter</h1>
+        
+        <div class="converter-section">
+            <div class="input-section">
+                <label for="input">Input:</label>
+                <textarea id="input" placeholder="Enter HTML or Markdown here..."></textarea>
+            </div>
+            
+            <div class="output-section">
+                <label for="output">Output:</label>
+                <textarea id="output" placeholder="Converted content will appear here..." readonly></textarea>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="convertHtmlToMarkdown()">HTML → Markdown</button>
+            <button class="btn" onclick="convertMarkdownToHtml()">Markdown → HTML</button>
+            <button class="btn" onclick="clearAll()">Clear</button>
+        </div>
+        
+        <div class="format-info">
+            <strong>Supported conversions:</strong><br>
+            • HTML to Markdown: Converts HTML elements to Markdown syntax (ignores style and script elements)<br>
+            • Markdown to HTML: Converts Markdown syntax to clean HTML elements<br>
+            • Output is simplified without CSS classes, styles, or JavaScript
+        </div>
+    </div>
+
+    <script>
+        // HTML to Markdown conversion
+        function convertHtmlToMarkdown() {
+            const input = document.getElementById('input').value.trim();
+            if (!input) {
+                alert('Please enter HTML content to convert.');
+                return;
+            }
+            
+            try {
+                const markdown = htmlToMarkdown(input);
+                document.getElementById('output').value = markdown;
+            } catch (error) {
+                alert('Error converting HTML to Markdown: ' + error.message);
+            }
+        }
+        
+        // Markdown to HTML conversion
+        function convertMarkdownToHtml() {
+            const input = document.getElementById('input').value.trim();
+            if (!input) {
+                alert('Please enter Markdown content to convert.');
+                return;
+            }
+            
+            try {
+                const html = markdownToHtml(input);
+                document.getElementById('output').value = html;
+            } catch (error) {
+                alert('Error converting Markdown to HTML: ' + error.message);
+            }
+        }
+        
+        // Clear both input and output
+        function clearAll() {
+            document.getElementById('input').value = '';
+            document.getElementById('output').value = '';
+        }
+        
+        // HTML to Markdown converter function
+        function htmlToMarkdown(html) {
+            // Create a temporary DOM element to parse HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Remove style and script elements as per requirements
+            const styleElements = tempDiv.querySelectorAll('style, script');
+            styleElements.forEach(el => el.remove());
+            
+            return convertElementToMarkdown(tempDiv);
+        }
+        
+        function convertElementToMarkdown(element) {
+            let markdown = '';
+            
+            for (let node of element.childNodes) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    markdown += node.textContent;
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    const tagName = node.tagName.toLowerCase();
+                    const textContent = node.textContent.trim();
+                    
+                    switch (tagName) {
+                        case 'h1':
+                            markdown += `# ${textContent}\n\n`;
+                            break;
+                        case 'h2':
+                            markdown += `## ${textContent}\n\n`;
+                            break;
+                        case 'h3':
+                            markdown += `### ${textContent}\n\n`;
+                            break;
+                        case 'h4':
+                            markdown += `#### ${textContent}\n\n`;
+                            break;
+                        case 'h5':
+                            markdown += `##### ${textContent}\n\n`;
+                            break;
+                        case 'h6':
+                            markdown += `###### ${textContent}\n\n`;
+                            break;
+                        case 'p':
+                            markdown += `${convertElementToMarkdown(node)}\n\n`;
+                            break;
+                        case 'strong':
+                        case 'b':
+                            markdown += `**${textContent}**`;
+                            break;
+                        case 'em':
+                        case 'i':
+                            markdown += `*${textContent}*`;
+                            break;
+                        case 'a':
+                            const href = node.getAttribute('href') || '#';
+                            markdown += `[${textContent}](${href})`;
+                            break;
+                        case 'ul':
+                            markdown += convertListToMarkdown(node, false) + '\n';
+                            break;
+                        case 'ol':
+                            markdown += convertListToMarkdown(node, true) + '\n';
+                            break;
+                        case 'li':
+                            // This will be handled by ul/ol cases
+                            markdown += convertElementToMarkdown(node);
+                            break;
+                        case 'blockquote':
+                            const lines = textContent.split('\n');
+                            markdown += lines.map(line => `> ${line}`).join('\n') + '\n\n';
+                            break;
+                        case 'code':
+                            markdown += `\`${textContent}\``;
+                            break;
+                        case 'pre':
+                            markdown += `\`\`\`\n${textContent}\n\`\`\`\n\n`;
+                            break;
+                        case 'br':
+                            markdown += '\n';
+                            break;
+                        case 'hr':
+                            markdown += '---\n\n';
+                            break;
+                        case 'img':
+                            const src = node.getAttribute('src') || '';
+                            const alt = node.getAttribute('alt') || '';
+                            markdown += `![${alt}](${src})`;
+                            break;
+                        default:
+                            // For other elements, just get the text content
+                            markdown += convertElementToMarkdown(node);
+                            break;
+                    }
+                }
+            }
+            
+            return markdown;
+        }
+        
+        function convertListToMarkdown(listElement, ordered) {
+            let markdown = '';
+            const items = listElement.querySelectorAll('li');
+            
+            items.forEach((item, index) => {
+                const content = convertElementToMarkdown(item).trim();
+                if (ordered) {
+                    markdown += `${index + 1}. ${content}\n`;
+                } else {
+                    markdown += `- ${content}\n`;
+                }
+            });
+            
+            return markdown;
+        }
+        
+        // Markdown to HTML converter function
+        function markdownToHtml(markdown) {
+            let html = markdown;
+            
+            // Headers
+            html = html.replace(/^###### (.*$)/gm, '<h6>$1</h6>');
+            html = html.replace(/^##### (.*$)/gm, '<h5>$1</h5>');
+            html = html.replace(/^#### (.*$)/gm, '<h4>$1</h4>');
+            html = html.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+            
+            // Bold
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+            
+            // Italic
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            html = html.replace(/_(.*?)_/g, '<em>$1</em>');
+            
+            // Code blocks
+            html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+            
+            // Inline code
+            html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+            
+            // Links
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+            
+            // Images
+            html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+            
+            // Horizontal rules
+            html = html.replace(/^---$/gm, '<hr>');
+            
+            // Blockquotes
+            html = html.replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>');
+            
+            // Lists
+            html = convertMarkdownListsToHtml(html);
+            
+            // Paragraphs
+            html = convertMarkdownParagraphsToHtml(html);
+            
+            return html.trim();
+        }
+        
+        function convertMarkdownListsToHtml(html) {
+            // Unordered lists
+            const unorderedLines = html.split('\n');
+            let result = [];
+            let inUnorderedList = false;
+            
+            for (let line of unorderedLines) {
+                if (line.match(/^- /)) {
+                    if (!inUnorderedList) {
+                        result.push('<ul>');
+                        inUnorderedList = true;
+                    }
+                    result.push(`<li>${line.substring(2)}</li>`);
+                } else {
+                    if (inUnorderedList) {
+                        result.push('</ul>');
+                        inUnorderedList = false;
+                    }
+                    result.push(line);
+                }
+            }
+            
+            if (inUnorderedList) {
+                result.push('</ul>');
+            }
+            
+            html = result.join('\n');
+            
+            // Ordered lists
+            const orderedLines = html.split('\n');
+            result = [];
+            let inOrderedList = false;
+            
+            for (let line of orderedLines) {
+                if (line.match(/^\d+\. /)) {
+                    if (!inOrderedList) {
+                        result.push('<ol>');
+                        inOrderedList = true;
+                    }
+                    result.push(`<li>${line.replace(/^\d+\. /, '')}</li>`);
+                } else {
+                    if (inOrderedList) {
+                        result.push('</ol>');
+                        inOrderedList = false;
+                    }
+                    result.push(line);
+                }
+            }
+            
+            if (inOrderedList) {
+                result.push('</ol>');
+            }
+            
+            return result.join('\n');
+        }
+        
+        function convertMarkdownParagraphsToHtml(html) {
+            const lines = html.split('\n');
+            const result = [];
+            let currentParagraph = [];
+            
+            for (let line of lines) {
+                const trimmedLine = line.trim();
+                
+                // Skip if it's already an HTML tag or empty
+                if (trimmedLine === '' || 
+                    trimmedLine.startsWith('<') || 
+                    trimmedLine.match(/^#/) ||
+                    trimmedLine.startsWith('- ') ||
+                    trimmedLine.match(/^\d+\. /) ||
+                    trimmedLine.startsWith('> ')) {
+                    
+                    // Close current paragraph if exists
+                    if (currentParagraph.length > 0) {
+                        result.push(`<p>${currentParagraph.join(' ')}</p>`);
+                        currentParagraph = [];
+                    }
+                    
+                    result.push(line);
+                } else {
+                    currentParagraph.push(trimmedLine);
+                }
+            }
+            
+            // Close final paragraph if exists
+            if (currentParagraph.length > 0) {
+                result.push(`<p>${currentParagraph.join(' ')}</p>`);
+            }
+            
+            return result.join('\n');
+        }
+    </script>
+</body>
+</html>
